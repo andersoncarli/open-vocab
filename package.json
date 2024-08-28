@@ -25,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/andersoncarli/open-vocab/issues"
   },
-  "homepage": "https://github.com/andersoncarli/open-vocab#readme"
+  "homepage": "https://github.com/andersoncarli/open-vocab#readme",
+  "dependencies": {
+    "commander": "^12.1.0"
+  }
 }

@@ -1,3 +1,4 @@
+// The initial version of the progressive hash idea, using heap. Before using sparse array
 const crypto = require('crypto');
 const fs = require('fs');
 const { openSync, writeSync, closeSync, readSync } = require('fs');
