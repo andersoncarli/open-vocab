@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/andersoncarli/open-vocab#readme",
   "dependencies": {
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "nodemon": "^3.1.4"
   }
 }
