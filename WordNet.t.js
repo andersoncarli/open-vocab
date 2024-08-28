@@ -1,131 +1,116 @@
-const { check, checkFail, checkException, debug, log } = require('./core2.js')
+// WordNet.t.js
+const { check, checkFail, checkException, debug, log } = require('./utils/core2.js')
 const fs = require('fs').promises; const path = require('path');
-const WordNet = require('node-wordnet');
+const WordNet = require('./WordNet.js');
 
 (async function () {
-  const wordnet = new WordNet('/home/bittnkr/vocabia/data/wn3.1.dict');
+  const wn = new WordNet('./data/wn3.1.dict');
 
-  async function checkFiles() {
-    const dbPath = '/home/bittnkr/vocabia/data/wn3.1.dict';
+  function checkFiles() {
+    const dbPath = './data/wn3.1.dict';
     try {
-      const files = await fs.readdir(dbPath);
+      const files = fs.readdir(wn.dbPath);
       log('Files in database directory:', files);
 
       // Try to read the first few lines of index.verb
       const indexVerbPath = path.join(dbPath, 'index.verb');
-      const data = await fs.readFile(indexVerbPath, 'utf8');
+      const data = fs.readFile(indexVerbPath, 'utf8');
       log('First 100 characters of index.verb:', data.slice(0, 100));
     } catch (error) {
       console.error('Error accessing files:', error);
     }
-  }; await checkFiles();
+  }; checkFiles();
 
-  async function testOtherFunctions() {
+  function testOtherFunctions() {
     try {
-      const result = await wordnet.get(1846);  // Try to get a specific synset
+      const result = wn.get(1846);  // todo: implement wn.get to get a specific synset
       log('Get result:', result);
 
-      const morphResult = await wordnet.morph('better');  // Try morphological processing
+      const morphResult = wn.morph('better');  // Try morphological processing
       log('Morph result:', morphResult);
     } catch (error) {
       console.error('Error:', error);
     }
-  }; await testOtherFunctions();
+  }; testOtherFunctions();
 
-  async function testMultipleWords() {
-    const words = ['dog', 'run', 'happy', 'computer', 'science'];
+  function testMultipleWords() {
+    const words = ['dog']//, 'run', 'happy', 'computer', 'science'];
     for (const word of words) {
       try {
-        const results = await wordnet.lookup(word);
+        const results = wn.lookup(word);
         log(`Results for "${word}":`, results);
       } catch (error) {
         console.error(`Error looking up "${word}":`, error);
       }
     }
-  }; await testMultipleWords();
+  }; testMultipleWords();
 
-  // async function testWordNet() {
-  //   try {
-  //     const results = await wordnet.lookup('test');
-  //     log(results);
-  //     if (results && results.length > 0) {
-  //       log("WordNet is working correctly!");
-  //     } else {
-  //       log("WordNet returned an empty result. Check your database.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error occurred:", error);
-  //   }
-  // }; testWordNet();
-
-
+  function testWordNet() {
+    try {
+      const results = wn.lookup('test');
+      log(results);
+      if (results && results.length > 0) {
+        log("WordNet is working correctly!");
+      } else {
+        log("WordNet returned an empty result. Check your database.");
+      }
+    } catch (error) {
+      console.error("Error occurred:", error);
+    }
+  }; testWordNet();
 
 
+  const lookup = (word) => wn.lookup(word)
 
+  test('PartsOfSpeech', (word) => {
+    const results = lookup(word);
+    const pos = new Set(results.map(r => r.pos));
+    log(`"${word}" can be used as: ${Array.from(pos).join(', ')}`);
+  })('run')
 
+  test('Meanings', (word) => {
+    const results = lookup(word);
+    log(`"${word}" has ${results.length} different meanings:`);
+    results.forEach((result, index) => {
+      log(`${index + 1}. (${result.pos}) ${result.def}`);
+    })
+  })('bank')
 
+  // Synonyms are words with similar meanings, while antonyms are words with opposite meanings.
+  test('RelatedWords', (word) => {
+    const results = lookup(word);
+    for (let result of results) {
+      log(`\nFor "${word}" as ${result.pos}:`);
+      const synonyms = wn.lookupSynonyms(result.synsetOffset, result.pos);
+      log("Synonyms:", synonyms.map(s => s.lemma).join(', '));
+      const antonyms = wn.lookupAntonyms(result.synsetOffset, result.pos);
+      log("Antonyms:", antonyms.map(a => a.lemma).join(', '));
+    }
+  })('good')
 
+  // Hypernymy and Hyponymy (Is-A Relationships):
+  // Represent hierarchical relationships between words. A hypernym is a more general term, while a hyponym is a more specific term.
+  test('Hierarchy', (word) => {
+    const results = lookup(word);
+    for (let result of results) {
+      log(`\nFor "${word}" as ${result.pos}:`);
+      const hypernyms = wn.lookupHypernyms(result.synsetOffset, result.pos);
+      log("Hypernyms (more general):", hypernyms.map(h => h.lemma).join(', '));
+      const hyponyms = wn.lookupHyponyms(result.synsetOffset, result.pos);
+      log("Hyponyms (more specific):", hyponyms.map(h => h.lemma).join(', '));
+    }
+  })('dog')
 
-
-
-
-
-
-
-  // // const wordnet = new WordNet('/home/bittnkr/vocabia/data/wn3.1.dict');
-  // const lookup = async (word) => await wordnet.lookup(word)
-
-  // test('PartsOfSpeech', async (word) => {
-  //   const results = await lookup(word);
-  //   const pos = new Set(results.map(r => r.pos));
-  //   log(`"${word}" can be used as: ${Array.from(pos).join(', ')}`);
-  // })('run')
-
-  // test('Meanings', async (word) => {
-  //   const results = await lookup(word);
-  //   log(`"${word}" has ${results.length} different meanings:`);
-  //   results.forEach((result, index) => {
-  //     log(`${index + 1}. (${result.pos}) ${result.def}`);
-  //   })
-  // })('bank')
-
-  // // Synonymy and Antonymy:
-  // // Synonyms are words with similar meanings, while antonyms are words with opposite meanings.
-  // test('RelatedWords', async (word) => {
-  //   const results = await lookup(word);
-  //   for (let result of results) {
-  //     log(`\nFor "${word}" as ${result.pos}:`);
-  //     const synonyms = await wordnet.lookupSynonyms(result.synsetOffset, result.pos);
-  //     log("Synonyms:", synonyms.map(s => s.lemma).join(', '));
-  //     const antonyms = await wordnet.lookupAntonyms(result.synsetOffset, result.pos);
-  //     log("Antonyms:", antonyms.map(a => a.lemma).join(', '));
-  //   }
-  // })('good')
-
-  // // Hypernymy and Hyponymy (Is-A Relationships):
-  // // These represent hierarchical relationships between words. A hypernym is a more general term, while a hyponym is a more specific term.
-  // test('Hierarchy', async (word) => {
-  //   const results = await lookup(word);
-  //   for (let result of results) {
-  //     log(`\nFor "${word}" as ${result.pos}:`);
-  //     const hypernyms = await wordnet.lookupHypernyms(result.synsetOffset, result.pos);
-  //     log("Hypernyms (more general):", hypernyms.map(h => h.lemma).join(', '));
-  //     const hyponyms = await wordnet.lookupHyponyms(result.synsetOffset, result.pos);
-  //     log("Hyponyms (more specific):", hyponyms.map(h => h.lemma).join(', '));
-  //   }
-  // })('dog')
-
-  // // Meronymy and Holonymy (Part-Whole Relationships):
-  // // These represent part-whole relationships. A meronym is a part of something, while a holonym is the whole.
-  // test('PartWhole', async (word) => {
-  //   const results = await lookup(word);
-  //   for (let result of results) {
-  //     log(`\nFor "${word}" as ${result.pos}:`);
-  //     const meronyms = await wordnet.lookupMeronyms(result.synsetOffset, result.pos);
-  //     log("Meronyms (parts):", meronyms.map(m => m.lemma).join(', '));
-  //     const holonyms = await wordnet.lookupHolonyms(result.synsetOffset, result.pos);
-  //     log("Holonyms (wholes):", holonyms.map(h => h.lemma).join(', '));
-  //   }
-  // })('tree')
-
+  // Meronymy and Holonymy (Part-Whole Relationships):
+  // These represent part-whole relationships. A meronym is a part of something, while a holonym is the whole.
+  test('PartWhole', (word) => {
+    const results = lookup(word);
+    for (let result of results) {
+      log(`\nFor "${word}" as ${result.pos}:`);
+      const meronyms = wn.lookupMeronyms(result.synsetOffset, result.pos);
+      log("Meronyms (parts):", meronyms.map(m => m.lemma).join(', '));
+      const holonyms = wn.lookupHolonyms(result.synsetOffset, result.pos);
+      log("Holonyms (wholes):", holonyms.map(h => h.lemma).join(', '));
+    }
+  })('tree')
 })()
