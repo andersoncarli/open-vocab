@@ -1,0 +1,29 @@
+{
+  "name": "openvocab",
+  "version": "1.0.0",
+  "description": "A universal vocabulary with easy access and low storage",
+  "main": "main.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/andersoncarli/open-vocab.git"
+  },
+  "keywords": [
+    "vocabulary",
+    "llm",
+    "nlp",
+    "gpt",
+    "language"
+  ],
+  "author": "Anderson Carli",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/andersoncarli/open-vocab/issues"
+  },
+  "homepage": "https://github.com/andersoncarli/open-vocab#readme"
+}
