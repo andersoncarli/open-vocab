@@ -6,3 +6,5 @@ https://www.kaggle.com/datasets/rtatman/english-word-frequency?resource=download
 The Google Books Ngram Viewer is optimized for quick inquiries into the usage
 https://storage.googleapis.com/books/ngrams/books/datasetsv3.html
 
+
+https://github.com/hackerb9/gwordlist

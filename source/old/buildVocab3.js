@@ -1,3 +1,4 @@
+// buildVocab3.js
 const fs = require('fs');
 const crypto = require('crypto');
 const readline = require('readline');
@@ -37,12 +38,12 @@ async function transformFile() {
       const o = sparseArray[index] = { word, hash: index, bits, position: i, count: parseInt(count) };
 
       if (bits > maxLevel) { maxLevel = bits; maxWord = word }
-      if (i++ % 1000 == 0)
+      if (i++ % 10000 == 0)
         console.log(JSON.stringify(sparseArray[index]), maxLevel)
     }
   }
 
-  fs.writeFileSync('english.vocab.jsonl', sparseArray.filter(Boolean).map(v => JSON.stringify(v)).join('\n'));
+  fs.writeFileSync('./data/english.vocab.jsonl', sparseArray.filter(Boolean).map(v => JSON.stringify(v)).join('\n'));
 }
 
 transformFile().catch(err => console.error(err));

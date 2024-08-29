@@ -1,5 +1,5 @@
 const fs = require('fs')
-const { check, checkFail, checkException } = require('../utils/core2.js')
+const { check, checkFail, checkException } = require('./utils/core2.js')
 const Vocabulary = require('./Vocabulary.js')
 
 // Unit test for Vocabulary class
@@ -9,7 +9,7 @@ test('Vocabulary', () => {
   if (fs.existsSync(vocabFileName)) fs.unlinkSync(vocabFileName)
 
   // Create a new vocabulary instance
-  const vocab = new Vocabulary(vocabFileName)
+  var vocab = new Vocabulary(vocabFileName)
 
   // addWord and searchWord
   vocab.addWord('hello', 100)

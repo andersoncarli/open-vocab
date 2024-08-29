@@ -17,7 +17,7 @@ const findSparseIndex = (binaryHash, array, bits) => {
 };
 
 async function transformFile() {
-  const input = fs.createReadStream('./data/unigram_freq.csv');
+  const input = fs.createReadStream('../data/unigram_freq.csv');
   const rl = readline.createInterface({ input, crlfDelay: Infinity });
 
   const vocab = {};
@@ -46,7 +46,7 @@ async function transformFile() {
   }
 
   // Write the vocab object to a JSON file
-  fs.writeFileSync('english.vocab.json', JSON.stringify(vocab, null, 2));
+  fs.writeFileSync('../data/english.vocab.json', JSON.stringify(vocab, null, 2));
   console.log(`Vocabulary generated with max level: ${maxLevel}`);
 }
 
