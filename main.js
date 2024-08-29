@@ -1,8 +1,8 @@
 const { Command } = require('commander');
-const Vocabulary = require('./Vocabulary');
+const Vocabulary = require('./source/Vocabulary');
 
 const program = new Command();
-const vocab = new Vocabulary();
+const vocab = new Vocabulary('./data/english.vocab.jsonl');
 
 program
   .command('loadcorpus')

@@ -1,6 +1,6 @@
 // WordNet.js
 const fs = require('fs'); const path = require('path');
-const utils = require('./utils/core2.js')
+const utils = require('../utils/core2.js')
 const { test, log, debug } = utils
 
 class WordNet {
@@ -147,9 +147,10 @@ class WordNet {
 module.exports = WordNet;
 
 test('WordNet', ({ check, debug, log, toSource, cl }) => {
+
   const wn = new WordNet('./data/wn3.1.dict');
 
-  log.clear()
+  log.clear(); console.clear()
 
   const source = (o) => toSource(o, (k, v) => (
     v instanceof Array ? toSource(v)
@@ -159,13 +160,13 @@ test('WordNet', ({ check, debug, log, toSource, cl }) => {
   const words = ['dog', 'run', 'happy', 'computer', 'science'];
   for (const word of words) {
 
-    log(cl('red', `\nResults for "${cl('+', word)}":`), source(wn.lookup(word)))
-    log(`\n${cl.color('Synonyms')} for "${word}":`, source(wn.synonyms(word)));
-    log(`\n${cl.color('Definitions')} for "${word}":`, source(wn.definitions(word)));
-    log(`\n${cl.color('Examples')} for "${word}":`, source(wn.examples(word)));
-    log(`\n${cl.color('Hypernyms')} for "${word}":`, source(wn.hypernyms(word)));
-    log(`\n${cl.color('Hyponyms')} for "${word}":`, source(wn.hyponyms(word)));
-    log(`\n${cl.color('Antonyms')} for "${word}":`, source(wn.antonyms(word)));
-    log(`\n${cl.color('Derivationally')} related forms for "${word}":`, source(wn.derivationallyRelated(word)));
+    log(cl.bgColor(`\nResults for "${cl('+', word)}":`), source(wn.lookup(word)))
+    log(`${cl.color('Synonyms')}:`, source(wn.synonyms(word)));
+    log(`${cl.color('Definitions')}:`, source(wn.definitions(word)));
+    log(`${cl.color('Examples')}:`, source(wn.examples(word)));
+    log(`${cl.color('Hypernyms')}:`, source(wn.hypernyms(word)));
+    log(`${cl.color('Hyponyms')}:`, source(wn.hyponyms(word)));
+    log(`${cl.color('Antonyms')}:`, source(wn.antonyms(word)));
+    log(`${cl.color('Derivationally related forms')}:`, source(wn.derivationallyRelated(word)));
   }
 })(utils)

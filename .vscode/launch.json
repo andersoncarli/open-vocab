@@ -272,7 +272,7 @@
       "program": "${file}",
       // "args": [ "4004" ],
       "console": "integratedTerminal",
-      "skipFiles_": [
+      "skipFiles": [
         "<node_internals>/**/*",
         "${workspaceFolder}/node_modules/**",
         "${workspaceFolder}/utils/**/*.js",
