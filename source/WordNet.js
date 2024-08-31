@@ -97,7 +97,7 @@ class WordNet {
               pos,
               synsetOffset: offset,
               def: synset.def,
-              synonyms: synset.words,
+              synonyms: this.translateSynonyms(synset.words),
               examples: synset.examples
             });
           }
@@ -142,10 +142,64 @@ class WordNet {
         offsets.push(words[i + 2]);
     return offsets;
   }
+
+  translateSynonyms(synonyms) {
+    const translated = [];
+    let skip = 0;
+    for (let i = 0; i < synonyms.length; i++) {
+      if (skip > 0) {
+        skip--;
+        continue;
+      }
+      const symbol = synonyms[i];
+      if (this.pointerSymbols[symbol]) {
+        translated.push(this.pointerSymbols[symbol]);
+      } else if (symbol === 'n' || symbol === 'v' || symbol === 'a' || symbol === 'r') {
+        translated.push(this.expandPOS(symbol));
+      } else if (symbol.match(/^\d+$/)) {
+        translated.push(`Sense ${symbol}`);
+      } else {
+        translated.push(symbol);
+      }
+      // Skip the next symbol if it's a part of speech
+      if (i + 1 < synonyms.length && (synonyms[i + 1] === 'n' || synonyms[i + 1] === 'v' || synonyms[i + 1] === 'a' || synonyms[i + 1] === 'r')) {
+        skip = 1;
+      }
+    }
+    return translated;
+  }
+
+  expandPOS(pos) {
+    let t = { n: 'noun', v: 'verb', a: 'adjective', r: 'adverb' }
+    return returnt[pos] || pos
+    // switch (pos) {
+    //   case 'n': return 'noun';
+    //   case 'v': return 'verb';
+    //   case 'a': return 'adjective';
+    //   case 'r': return 'adverb';
+    //   default: return pos;
+    // }
+  }
+
+  walk(start = 0, stop = Infinity, callback) {
+    let count = 0;
+    for (let pos of ['noun', 'verb', 'adj', 'adv']) {
+      this.loadIndex(pos);
+      for (let word in this.data[pos].index) {
+        if (count >= start && count < stop) {
+          const result = this.lookup(word);
+          callback(word, result);
+        }
+        count++;
+        if (count >= stop) return;
+      }
+    }
+  }
 }
 
 module.exports = WordNet;
 
+// Test code
 test('WordNet', ({ check, debug, log, toSource, cl }) => {
 
   const wn = new WordNet('./data/wn3.1.dict');
@@ -156,6 +210,16 @@ test('WordNet', ({ check, debug, log, toSource, cl }) => {
     v instanceof Array ? toSource(v)
       : v instanceof Object ? toSource(v)
         : String(v)), 2)
+
+
+  // Example of using the walk method
+  log(cl.bgColor('\nWalking through WordNet:'));
+  let start = Math.round(Math.random()*100000)
+  wn.walk(start, start+10, (word, result) => {
+    log(`${cl.color(word)}:`, source(result));
+  });
+
+
 
   const words = ['dog', 'run', 'happy', 'computer', 'science'];
   for (const word of words) {
