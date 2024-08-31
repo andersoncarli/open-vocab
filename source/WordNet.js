@@ -25,10 +25,10 @@ class WordNet {
       '=': 'Attribute',
       '+': 'Derivationally related form',
       ';c': 'Domain of synset - TOPIC',
-      '-c': 'Member of this domain - TOPIC',
       ';r': 'Domain of synset - REGION',
-      '-r': 'Member of this domain - REGION',
       ';u': 'Domain of synset - USAGE',
+      '-c': 'Member of this domain - TOPIC',
+      '-r': 'Member of this domain - REGION',
       '-u': 'Member of this domain - USAGE'
     };
   }

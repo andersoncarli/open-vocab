@@ -245,7 +245,7 @@ class BitStreamMMFile extends BitStreamPage {
   }
 }
 
-function testBitStream() {
+test('BitStream', ({ check }) => {
 
   function levelUp({ level, pos }) { console.log(`up:${level} pos:${pos}`) }
   function levelDn({ level, pos }) { console.log(`dn:${level} pos:${pos}`) }
@@ -286,10 +286,8 @@ function testBitStream() {
   check(5, '101', 3) // 5 fits in three bits so it dont need releveling
   check(7, '111', 3) // 7 fits in three bits so it dont need releveling
   check(6, '110', 3) // 6 fits in three bits so it dont need releveling
-  check(1, '0000 1', 1) // beck to level
-}; testBitStream()
+  check(1, '0000 1', 1) // back to level
+})(utils)
 
 
-function testShakespeare() {
-  // load
-}; testBitStream()
+// test('Bitstream-Shakespeare', ({ check }) => { })()
