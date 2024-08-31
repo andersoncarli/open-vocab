@@ -1,143 +1,134 @@
 const fs = require('fs');
 const crypto = require('crypto');
+const { debug } = require('../utils/core2.js')
 
-// Hash a word using SHA-256 and return binary representation
-const hashWord = (word, maxBits = 32) => {
-  const hash = crypto.createHash('sha256').update(word).digest();
-  let binaryHash = [...hash].map(byte => byte.toString(2).padStart(8, '0')).join('');
-  return parseInt(binaryHash.slice(0, bits), 2);
-}
-
-class Vocabulary {
-  constructor({ file, maxBits = 24 }) {
+class Vocabulary extends Array {
+  constructor({ file }) {
+    super()
     this.file = file;
     this.wordMap = new Map(); // For quick lookups
-    this.words = []; // Sparse array for storing vocabulary records
-    if (this.file) this.open()
+    this.currentLevel = 1;
+    // this = []; // Sparse array for storing vocabulary records
+    this.levels = [0];
+    this.lastFull = 0
+    if (this.file && fs.existsSync(this.file)) this.open()
   }
 
   open() {
-    if (fs.existsSync(this.file)) {
-      const data = fs.readFileSync(this.file, 'utf8');
-      const lines = data.split('\n').filter(line => line.trim() !== '');
-      for (const line of lines) {
-        const record = JSON.parse(line);
-        this.wordMap.set(record.word, record);
-        this.words[record.hash] = record;
-      }
-    } else console.log(this.file, 'Not found.')
-  }
-
-  save() {
-    const data = this.words
-      .filter(Boolean)
-      .map(record => JSON.stringify(record))
-      .join('\n');
-    fs.writeFileSync(this.file, data, 'utf-8');
-  }
-
-  // Add a word to the vocabulary
-  addWord(word, count) {
-    const hash = hashWord(word);
-    const record = { word, hash, count };
-    this.wordMap.set(word, record);
-    this.words[hash] = record;
-  }
-  getSlot(hash) {
-    for (let i = this.currentLevel; i <= this.maxBits; i++) {
-      const slot = hash >>> (this.maxBits - i);
-      if (!this.words[slot]) return slot;
-    }
-    return hash;
-  }
-
-  optimizeGroupPlacement(rootHash) {
-    const sameHashGroup = this.sameHashRoot(rootHash);
-    sameHashGroup.sort((a, b) => a.hash - b.hash).forEach(({ word, count, hash }) => {
-      const slot = this.getSlot(hash);
-      this.words[slot] = { word, count, hash };
+    const data = fs.readFileSync(this.file, 'utf8');
+    data.trim().split('\n').forEach((line, index) => {
+      const [word, count, id] = line.split(',');
+      id = id ? parseInt(id) : index;
+      this[id] = { word, count: parseInt(count || 0) };
+      this.levels[this.bitCount(id)]++;
+      this.wordMap.set(word, this[id]);
     });
   }
 
-  sameHashRoot(word, firstLevel = this.currentLevel + 1, lastLevel = this.currentLevel) {
-    const hash = hashWord(word, this.maxBits);
+  save() {
+    let index = 0
+    data = 'word,count,id'
+    const data = this.filter(Boolean).map((w, i) => {
+      let id = (i == index) ? '' : ',' + index; index++
+      return `${w.word},${w.count}${id}`
+    }).join('\n');
+    fs.writeFileSync(this.file, data, 'utf-8');
+  }
+
+  add(word, count = 1) {
+    debug('add', word, count)
+    const slot = this.getSlot(word);
+    slot.count += count
+    return slot
+  }
+
+  getSlot(word) {
+    let slot, hash = hashWord(word), id
+    debug('getSlot', hash.toString(2).padStart(32, '0'), word)
+
+    let group = this.sameHashRoot(hash)
+    let w = group.find(v => !v.slot.word || v.slot.word == word)
+    if (w) slot = w.slot // found the word
+    else {
+      id = mask(this.currentLevel, hash);
+      if (!this[id]) { // found a empty slot
+        slot = { word, count: 0, id }
+      } else { // find a slot bellow this.currentLevel, optimizing levels
+        group = group.sort((a, b) => a.hash - b.hash)
+        group.forEach(w => {
+          this[w.id] = w.slot;
+          if (w.slot.word == word) slot = w.slot
+        });
+      }
+    }
+    // can't accomodate the word, start a new level.
+    if (!slot) {
+      id = mask(this.currentLevel++, hash);
+      slot = { word, count: 0, id }
+      this.levels[this.currentLevel] = 0
+    }
+
+    // update level stats
+    let bits = bitCount(id); this.levels[bits]++;
+    if (this.levels[bits] == mask(bits)) this.lastFull = bits
+    return this[id] = slot
+  }
+
+  sameHashRoot(hash, firstLevel = 1) {
+    debug(hash, firstLevel)
     const matches = [];
-    for (let i = firstLevel; i <= lastLevel; i++) {
-      const candidate = this.words[hash >>> (this.maxBits - i)];
-      if (candidate) matches.push(candidate);
+    for (let i = firstLevel; i <= this.currentLevel; i++) {
+      const id = hash & ((1 << i) - 1);
+      if (this[id]) matches.push({ slot: this[id], id, hash });
     }
     return matches;
   }
 
-  loadVocab(vocabFile) {
-    const newVocab = fs.readFileSync(vocabFile, 'utf8').trim().split('\n');
-    newVocab.forEach((line, i) => {
-      const [word, count] = line.split(',');
-      const existing = this.lookup(word);
-      if (existing) {
-        existing.count += parseInt(count || (newVocab.length - i), 10);
-      } else {
-        this.addWord(word, parseInt(count || (newVocab.length - i), 10));
-      }
-    });
-  }
-
-  bitCount(value) {
-    return value.toString(2).length;
-  }
-
-  // Create a vocabulary from a word-count CSV file
-  loadCorpus(corpusFileName) {
-    const data = fs.readFileSync(corpusFileName, 'utf-8');
-    const lines = data.split('\n').filter(line => line.trim() !== '');
-    for (const line of lines) {
-      const [word, count] = line.split(',');
-      if (word && count) {
-        this.addWord(word, parseInt(count, 10));
-      }
+  search(word) {
+    const hash = hashWord(word)
+    for (let i = 1; i <= this.currentLevel; i++) {
+      const w = this[hash & ((1 << i) - 1)]
+      if (w && w.word == word) return w;
     }
-    this.save();
-  }
-
-  // Load vocabulary from a frequency-ordered file
-  loadVocab(vocabFileName) {
-    const data = fs.readFileSync(vocabFileName, 'utf-8');
-    const lines = data.split('\n').filter(line => line.trim() !== '');
-    for (const line of lines) {
-      const [word, count] = line.split(',');
-      if (word && count) {
-        this.addWord(word, parseInt(count, 10));
-      }
-    }
-  }
-
-  // Encode a text string into a bitstream based on vocabulary
-  encode(text) {
-    return text.split(/\s+/).map(token => this.encodeWord(token)).join('.');
-  }
-
-  // Decode a bitstream back to string using vocabulary
-  decode(bitstream) {
-    return bitstream.split('.').map(bits => this.decodeWord(bits)).join('');
   }
 
   // Encode a single word into its bit representation
-  encodeWord(word) {
-    const record = this.wordMap.get(word);
-    return record ? record.hash.toString(2) : word.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join('');
-  }
+  encodeWord(word) { return this.search(word).id }
 
   // Decode a bit representation into the original word or character
-  decodeWord(bits) {
-    const wordMap = new Map(this.words.filter(record => record).map(record => [record.hash.toString(2), record.word]));
-    return wordMap.get(bits) || String.fromCharCode(parseInt(bits, 2));
-  }
+  decodeWord(bits) { return this[parseInt(bits, 2)].word }
 
-  // Lookup a word using the sparse array
-  lookup(word) {
-    const record = this.wordMap.get(word);
-    return record ? record.count : -1; // Return count as an example
-  }
+  // Encode a text string into a bitstream based on vocabulary
+  encode(text) { return text.split(/\s+/).map(token => this.encodeWord(token)).join('.') }
+
+  // Decode a bitstream back to string using vocabulary
+  decode(bits) { return bits.split('.').map(id => this.decodeWord(id)).join('') }
 }
 
-module.exports = Vocabulary;
+function mask(bits, value) {
+  let m = (1 << bits) - 1
+  return value ? value & m : m
+}
+
+function bitCount(n) {
+  n = n - ((n >> 1) & 0x55555555)
+  n = (n & 0x33333333) + ((n >> 2) & 0x33333333)
+  return ((n + (n >> 4) & 0xF0F0F0F) * 0x1010101) >> 24
+}
+
+// hash function that returns an integer up to `maxBits`
+const hashWord = (word, bits) => {
+  const h = crypto.createHash('sha256').update(word).digest().readUInt32BE()
+  if (bits) h = h >>> (32 - bits);
+  return h
+};
+
+// Builds a new Vocabulary from a corpus file
+const buildVocab = (corpusFile, maxBits = 24) => {
+  const vocab = new Vocabulary({ file: '', maxBits });
+  const tokens = fs.readFileSync(corpusFile, 'utf8').split(/(\s+|[^\w\s])/).filter(Boolean)
+  tokens.forEach((word) => vocab.add(word))
+  return vocab;
+};
+
+module.exports = { Vocabulary, hashWord, buildVocab, bitCount };
